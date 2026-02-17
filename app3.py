@@ -1,32 +1,31 @@
 import streamlit as st
-import joblib
-import pandas as pd
 import requests
+import joblib
 import os
+import pandas as pd
 
 st.set_page_config(page_title="Churn Prediction", page_icon="📊")
 
 MODEL_PATH = "churn_model.pkl"
+HF_MODEL_URL = "https://huggingface.co/Alok2005/churn_model/resolve/main/churn_model.pkl"
 
-HF_MODEL_URL = "https://huggingface.co/YOUR_USERNAME/YOUR_REPO/resolve/main/churn_model.pkl"
-
-# Download model only if not already downloaded
 @st.cache_resource
 def download_and_load_model():
-
     if not os.path.exists(MODEL_PATH):
-        response = requests.get(HF_MODEL_URL)
-        response.raise_for_status()  # stop if error
-        with open(MODEL_PATH, "wb") as f:
-            f.write(response.content)
-
+        # Download model file
+        with requests.get(HF_MODEL_URL, stream=True) as r:
+            r.raise_for_status()
+            with open(MODEL_PATH, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+    # Load the model
     return joblib.load(MODEL_PATH)
 
 pipeline = download_and_load_model()
 
-st.title("📊 Customer Churn Prediction")
+st.title("📊 Customer Churn Prediction System")
 
-with st.form("form"):
+with st.form("prediction_form"):
 
     age = st.number_input("Age", 18, 100, 30)
     tenure = st.number_input("Tenure (Months)", 0, 120, 12)
@@ -66,8 +65,9 @@ if submitted:
     else:
         st.success("✅ Low Risk of Churn")
 
-    st.write(f"Churn Probability: {probability:.2%}")
+    st.write(f"Churn Probability: **{probability:.2%}**")
     st.progress(float(probability))
+
 
 
 
