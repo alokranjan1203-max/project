@@ -1,4 +1,3 @@
-# app.py
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -14,69 +13,55 @@ st.set_page_config(page_title="Customer Churn Predictor", page_icon="📊")
 def load_model():
     model_file = "churn_model.pkl"
 
-    # Remove old/bad file (optional)
+    # Delete corrupted file if exists
     if os.path.exists(model_file):
         os.remove(model_file)
 
-    # Download model from Google Drive if not exists
-    if not os.path.exists(model_file):
-        file_id = "1MEita3ulOxBMR8lSmp-EORQjlzPMTNSa"
-        url = f"https://drive.google.com/uc?id={file_id}"
-        gdown.download(url, model_file, quiet=False, fuzzy=True)
+    # Download from Google Drive
+    file_id = "1hB3P3v8UqIUoupZ7e4GvGlDtW3Tz65IS"
+    url = f"https://drive.google.com/uc?id={file_id}"
+    gdown.download(url, model_file, quiet=False, fuzzy=True)
 
     # Load model
     with open(model_file, "rb") as f:
-        model = pickle.load(f)
-    return model
+        model_data = pickle.load(f)
 
-model = load_model()
+    if isinstance(model_data, tuple) and len(model_data) == 2:
+        model, feature_columns = model_data
+    else:
+        model = model_data
+        feature_columns = None
+
+    return model, feature_columns
+
+model, feature_columns = load_model()
 
 # ---------------- UI ----------------
 st.title("📊 Customer Churn Predictor")
-st.markdown("Predict whether a customer is likely to churn based on usage and subscription data.")
+st.markdown("Predict whether a customer is likely to churn.")
 
 st.sidebar.header("Customer Inputs")
 
-def user_input():
-    age = st.sidebar.slider("Age", 18, 100, 35)
-    tenure = st.sidebar.slider("Tenure (months)", 0, 72, 24)
-    total_spend = st.sidebar.number_input("Total Spend", 0, 10000, 500)
-    usage_frequency = st.sidebar.slider("Usage Frequency", 0, 100, 50)
-    support_calls = st.sidebar.slider("Support Calls", 0, 20, 2)
-    gender = st.sidebar.selectbox("Gender", ["Male", "Female"])
-    subscription = st.sidebar.selectbox("Subscription Type", ["Basic", "Standard", "Premium"])
+def user_input(feature_columns):
+    user_dict = {}
 
-    # Encode categorical inputs
-    gender = 0 if gender == "Male" else 1
-    subscription = {"Basic": 0, "Standard": 1, "Premium": 2}[subscription]
+    for feature in feature_columns:
+        if feature == "gender":
+            val = st.sidebar.selectbox("Gender", ["Male", "Female"])
+            user_dict[feature] = 0 if val == "Male" else 1
 
-    data = pd.DataFrame({
-        "age": [age],
-        "tenure": [tenure],
-        "total spend": [total_spend],
-        "usage frequency": [usage_frequency],
-        "support calls": [support_calls],
-        "gender": [gender],
-        "subscription type": [subscription]
-    })
-    return data
+        elif feature == "subscription type":
+            val = st.sidebar.selectbox("Subscription Type", ["Basic", "Standard", "Premium"])
+            user_dict[feature] = {"Basic": 0, "Standard": 1, "Premium": 2}[val]
 
-input_data = user_input()
+        else:
+            user_dict[feature] = st.sidebar.number_input(feature.capitalize(), 0.0, 10000.0, 50.0)
 
-st.subheader("Input Summary")
-st.write(input_data)
+    return pd.DataFrame([user_dict], columns=feature_columns)
 
 # ---------------- PREDICTION ----------------
-if st.button("Predict Churn"):
-    prediction = model.predict(input_data)[0]
-    probability = model.predict_proba(input_data)[0]
+if feature_columns is not None:
+    input_data = user_input(feature_columns)
 
-    result = "⚠️ Customer WILL churn" if prediction == 1 else "✅ Customer will NOT churn"
-    st.success(result)
-
-    st.subheader("Prediction Probabilities")
-    prob_df = pd.DataFrame({
-        "Will Not Churn": [probability[0]],
-        "Will Churn": [probability[1]]
-    })
-    st.bar_chart(prob_df.T)
+    st.subheader("Input Summary")
+    st.write(input_data)
