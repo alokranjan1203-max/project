@@ -12,7 +12,7 @@ import pickle
 import pandas as pd
 import gdown
 import os
-
+!pip install streamlit
 # ----------------------------------
 # Page Config
 # ----------------------------------
