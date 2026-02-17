@@ -10,6 +10,8 @@ Original file is located at
 import streamlit as st
 import pickle
 import pandas as pd
+import gdown
+import os
 
 # ----------------------------------
 # Page Config
@@ -20,13 +22,23 @@ st.set_page_config(page_title="Churn Prediction", page_icon="📊", layout="cent
 # Load Model
 # ----------------------------------
 @st.cache_resource
+MODEL_PATH = "churn_model.pkl"
+FILE_ID = "1hB3P3v8UqIUoupZ7e4GvGlDtW3Tz65IS"
+
+if not os.path.exists(MODEL_PATH):
+    url = f"https://drive.google.com/uc?id={FILE_ID}"
+    gdown.download(url, MODEL_PATH, quiet=False)
+
+# ----------------------------------
+# Load Model
+# ----------------------------------
+@st.cache_resource
 def load_model():
-    with open("churn_model.pkl", "rb") as f:
+    with open(MODEL_PATH, "rb") as f:
         pipeline, feature_columns = pickle.load(f)
     return pipeline, feature_columns
 
 pipeline, feature_columns = load_model()
-
 # ----------------------------------
 # UI
 # ----------------------------------
