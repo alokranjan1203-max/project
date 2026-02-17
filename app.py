@@ -1,6 +1,4 @@
-
-
-
+# app.py
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -16,21 +14,26 @@ st.set_page_config(page_title="Customer Churn Predictor", page_icon="📊")
 def load_model():
     model_file = "churn_model.pkl"
 
+    # Remove old/bad file (optional)
+    if os.path.exists(model_file):
+        os.remove(model_file)
+
+    # Download model from Google Drive if not exists
     if not os.path.exists(model_file):
         file_id = "1MEita3ulOxBMR8lSmp-EORQjlzPMTNSa"
         url = f"https://drive.google.com/uc?id={file_id}"
-        gdown.download(url, model_file, quiet=False)
+        gdown.download(url, model_file, quiet=False, fuzzy=True)
 
+    # Load model
     with open(model_file, "rb") as f:
         model = pickle.load(f)
-
     return model
 
 model = load_model()
 
 # ---------------- UI ----------------
 st.title("📊 Customer Churn Predictor")
-st.markdown("Predict whether a customer is likely to churn.")
+st.markdown("Predict whether a customer is likely to churn based on usage and subscription data.")
 
 st.sidebar.header("Customer Inputs")
 
@@ -43,7 +46,7 @@ def user_input():
     gender = st.sidebar.selectbox("Gender", ["Male", "Female"])
     subscription = st.sidebar.selectbox("Subscription Type", ["Basic", "Standard", "Premium"])
 
-    # Encode categorical inputs same as training
+    # Encode categorical inputs
     gender = 0 if gender == "Male" else 1
     subscription = {"Basic": 0, "Standard": 1, "Premium": 2}[subscription]
 
@@ -56,7 +59,6 @@ def user_input():
         "gender": [gender],
         "subscription type": [subscription]
     })
-
     return data
 
 input_data = user_input()
@@ -72,11 +74,9 @@ if st.button("Predict Churn"):
     result = "⚠️ Customer WILL churn" if prediction == 1 else "✅ Customer will NOT churn"
     st.success(result)
 
-    st.subheader("Prediction Probability")
+    st.subheader("Prediction Probabilities")
     prob_df = pd.DataFrame({
         "Will Not Churn": [probability[0]],
         "Will Churn": [probability[1]]
     })
     st.bar_chart(prob_df.T)
-
-     
