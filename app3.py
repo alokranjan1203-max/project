@@ -1,43 +1,20 @@
 import streamlit as st
-import pickle
+import joblib
 import pandas as pd
-import gdown
-import os
 
-# ----------------------------------
-# Page Config
-# ----------------------------------
-st.set_page_config(page_title="Churn Prediction", page_icon="📊", layout="centered")
+st.set_page_config(page_title="Churn Prediction", page_icon="📊")
 
-# ----------------------------------
-# Model Config
-# ----------------------------------
 MODEL_PATH = "churn_model.pkl"
 
-GDRIVE_URL = "https://drive.google.com/uc?id=1hB3P3v8UqIUoupZ7e4GvGlDtW3Tz65IS"
-
-# Download model if not exists
-if not os.path.exists(MODEL_PATH):
-    gdown.download(GDRIVE_URL, MODEL_PATH, quiet=False)
-
-# ----------------------------------
-# Load Model
-# ----------------------------------
 @st.cache_resource
 def load_model():
-    with open(MODEL_PATH, "rb") as f:
-        pipeline, feature_columns = pickle.load(f)
-    return pipeline, feature_columns
+    return joblib.load(MODEL_PATH)
 
-pipeline, feature_columns = load_model()
+pipeline = load_model()
 
-# ----------------------------------
-# UI
-# ----------------------------------
-st.title("📊 Customer Churn Prediction System")
-st.markdown("Enter customer details below:")
+st.title("📊 Customer Churn Prediction")
 
-with st.form("prediction_form"):
+with st.form("form"):
 
     age = st.number_input("Age", 18, 100, 30)
     tenure = st.number_input("Tenure (Months)", 0, 120, 12)
@@ -49,9 +26,6 @@ with st.form("prediction_form"):
 
     submitted = st.form_submit_button("Predict")
 
-# ----------------------------------
-# Prediction
-# ----------------------------------
 if submitted:
 
     input_df = pd.DataFrame([[
@@ -62,18 +36,25 @@ if submitted:
         payment_delay,
         total_spend,
         last_interaction
-    ]], columns=feature_columns)
+    ]], columns=[
+        "age",
+        "tenure",
+        "usage frequency",
+        "support calls",
+        "payment delay",
+        "total spend",
+        "last interaction"
+    ])
 
     prediction = pipeline.predict(input_df)[0]
     probability = pipeline.predict_proba(input_df)[0][1]
-
-    st.subheader("Prediction Result")
 
     if prediction == 1:
         st.error("⚠️ High Risk of Churn")
     else:
         st.success("✅ Low Risk of Churn")
 
-    st.write(f"Churn Probability: **{probability:.2%}**")
+    st.write(f"Churn Probability: {probability:.2%}")
     st.progress(float(probability))
+
 
