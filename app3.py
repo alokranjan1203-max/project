@@ -22,7 +22,7 @@ st.set_page_config(page_title="Churn Prediction", page_icon="📊", layout="cent
 # Load Model
 # ----------------------------------
 @st.cache_resource
-MODEL_PATH = "churn_model.pkl"
+MODEL_PATH = "Models/churn_model.pkl"
 FILE_ID = "1hB3P3v8UqIUoupZ7e4GvGlDtW3Tz65IS"
 
 if not os.path.exists(MODEL_PATH):
