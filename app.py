@@ -1,6 +1,5 @@
 
 
-Open In Colab
 
 import streamlit as st
 import pandas as pd
