@@ -4,26 +4,49 @@ import joblib
 import os
 import pandas as pd
 
-st.set_page_config(page_title="Churn Prediction", page_icon="📊")
+# ----------------------------------
+# Page Config
+# ----------------------------------
+st.set_page_config(page_title="Churn Prediction", page_icon="📊", layout="centered")
 
+# ----------------------------------
+# Hugging Face Model URL
+# ----------------------------------
 MODEL_PATH = "churn_model.pkl"
 HF_MODEL_URL = "https://huggingface.co/Alok2005/churn_model/resolve/main/churn_model.pkl"
 
+# ----------------------------------
+# Download & Load Model
+# ----------------------------------
 @st.cache_resource
 def download_and_load_model():
     if not os.path.exists(MODEL_PATH):
-        # Download model file
         with requests.get(HF_MODEL_URL, stream=True) as r:
             r.raise_for_status()
             with open(MODEL_PATH, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
-    # Load the model
+
     return joblib.load(MODEL_PATH)
 
-pipeline = download_and_load_model()
+loaded_object = download_and_load_model()
 
+# ----------------------------------
+# Handle Tuple or Pipeline
+# ----------------------------------
+if isinstance(loaded_object, tuple):
+    model, scaler = loaded_object
+    use_scaler = True
+else:
+    model = loaded_object
+    scaler = None
+    use_scaler = False
+
+# ----------------------------------
+# UI
+# ----------------------------------
 st.title("📊 Customer Churn Prediction System")
+st.write("Enter customer details to predict churn probability.")
 
 with st.form("prediction_form"):
 
@@ -37,6 +60,9 @@ with st.form("prediction_form"):
 
     submitted = st.form_submit_button("Predict")
 
+# ----------------------------------
+# Prediction
+# ----------------------------------
 if submitted:
 
     input_df = pd.DataFrame([[
@@ -57,8 +83,23 @@ if submitted:
         "last interaction"
     ])
 
-    prediction = pipeline.predict(input_df)[0]
-    probability = pipeline.predict_proba(input_df)[0][1]
+    # If scaler exists → scale input
+    if use_scaler:
+        input_processed = scaler.transform(input_df)
+    else:
+        input_processed = input_df
+
+    prediction = model.predict(input_processed)[0]
+
+    if hasattr(model, "predict_proba"):
+        probability = model.predict_proba(input_processed)[0][1]
+    else:
+        probability = 0.0
+
+    # ----------------------------------
+    # Output
+    # ----------------------------------
+    st.subheader("Prediction Result")
 
     if prediction == 1:
         st.error("⚠️ High Risk of Churn")
@@ -67,6 +108,7 @@ if submitted:
 
     st.write(f"Churn Probability: **{probability:.2%}**")
     st.progress(float(probability))
+
 
 
 
