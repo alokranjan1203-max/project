@@ -1,16 +1,28 @@
 import streamlit as st
 import joblib
 import pandas as pd
+import requests
+import os
 
 st.set_page_config(page_title="Churn Prediction", page_icon="📊")
 
 MODEL_PATH = "churn_model.pkl"
 
+HF_MODEL_URL = "https://huggingface.co/YOUR_USERNAME/YOUR_REPO/resolve/main/churn_model.pkl"
+
+# Download model only if not already downloaded
 @st.cache_resource
-def load_model():
+def download_and_load_model():
+
+    if not os.path.exists(MODEL_PATH):
+        response = requests.get(HF_MODEL_URL)
+        response.raise_for_status()  # stop if error
+        with open(MODEL_PATH, "wb") as f:
+            f.write(response.content)
+
     return joblib.load(MODEL_PATH)
 
-pipeline = load_model()
+pipeline = download_and_load_model()
 
 st.title("📊 Customer Churn Prediction")
 
@@ -56,5 +68,6 @@ if submitted:
 
     st.write(f"Churn Probability: {probability:.2%}")
     st.progress(float(probability))
+
 
 
